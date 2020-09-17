@@ -7,6 +7,7 @@ response indices, which therewith don't get revealed to the receiver, except the
 one, which is of interest to the receiver, of course.
 """
 
+import json
 import nacl.public, nacl.secret, nacl.utils
 from nacl.bindings import crypto_scalarmult_ed25519_SCALARBYTES
 from nacl.bindings import crypto_scalarmult_ed25519_base
@@ -19,7 +20,7 @@ from hashlib import blake2b
 CONCEAL_RESPONSE_INDICES = True
 
 
-def calcMac(inputBytes: bytes, keyBytes: bytes = b'') -> bytes:
+def _calcMac(inputBytes: bytes, keyBytes: bytes = b'') -> bytes:
     """
     Calculates the keyed hash (Blake2b message authentication code) of an
     input.
@@ -77,14 +78,14 @@ class Receiver():
         """
         Returns the decrypted entry of interest to the Receiver.
 
-        :param params: A python dict containing the following:
-            'ciphers' with a list of the encrypted entries received by the Sender,
+        :param ciphers: A python dict containing all entry indices as keys and
+            the corresponding encrypted entries as values.
         """
         D = {}
         for entryIndex, otSecret in self.__otSecrets.items():
             origEntryIndex = entryIndex
             if CONCEAL_RESPONSE_INDICES:
-                entryIndex = calcMac(entryIndex.encode('utf8'), keyBytes=otSecret)
+                entryIndex = _calcMac(entryIndex.encode('utf8'), keyBytes=otSecret)
             c = ciphers[entryIndex]
             D[origEntryIndex] = nacl.secret.SecretBox(otSecret).decrypt(c).decode()
         return D
@@ -124,11 +125,10 @@ class Sender():
 
     def retrieve(self, params: dict) -> dict:
         """
-        Returns all encrypted entries provided to the Sender via the 'params'
-        argument (usually all entries of a database). It should contain the
-        entry of interest to the Receiver, although the Sender is unaware of
-        which entry is the one. Each entry must be a python dict containing the
-        following keys:
+        Returns all encrypted entries provided to the Sender (usually all
+        entries of a database). It should contain the entry of interest to the
+        Receiver, although the Sender is unaware of which entry is the one. Each
+        entry must be a python dict containing the following keys:
             'index' as the index of the entry given by a string,
             'value' as the value of the entry given by a string.
         All entries will be extended with a new key, which must be calculated
@@ -160,7 +160,7 @@ class Sender():
             )
             c = nacl.secret.SecretBox(K).encrypt(entry['value'].encode('utf8'))
             if CONCEAL_RESPONSE_INDICES:
-                i = calcMac(
+                i = _calcMac(
                     entryIndexBytes,
                     keyBytes=K,
                 )
