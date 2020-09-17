@@ -3,7 +3,7 @@
 TONoo1 (say: to noone) is an implementation of the 1-out-of-N Oblivious Transfer
 scheme [presented by T. Chou and C. Orlandi
 (2015)](https://dx.doi.org/10.1007/978-3-319-22174-8_3) with some minor
-improvments.
+improvements.
 
 1-out-of-N Oblivious Transfer refers to a cryptographic primitive, which allows
 a participant of the scheme (called the Receiver) to query a database (hold by
